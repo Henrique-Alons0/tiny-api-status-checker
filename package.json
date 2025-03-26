@@ -4,7 +4,7 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx tsc && copy .env build/.env && copy urls.json build/urls.json",
     "start": "tsx src/index.ts -f urls.json",
     "start:watch": "tsx watch src/http/server.ts -f urls.json",
     "analyze": "tsx src/index.ts -f urls.json"
