@@ -12,7 +12,7 @@ Installation ⚙️
 1. Clone the Repository 🖥️
 
 ```
-git clone https://github.com/yourusername/api-status-service.git
+git clone https://github.com/Henrique-Alons0/tiny-api-status-checke
 ```
 
 2. Install Dependencies 📦
