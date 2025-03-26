@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Status da API - Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f7f7f7;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .container {
+        width: 90%;
+        margin: 0 auto;
+        padding-top: 30px;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      .status-card {
+        background: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      .status-card h3 {
+        margin: 0;
+      }
+
+      .status-card p {
+        font-size: 14px;
+        color: #888;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+      }
+
+      .status span {
+        margin-left: 10px;
+        font-size: 16px;
+        color: green;
+      }
+
+      .status.unavailable span {
+        color: red;
+      }
+
+      canvas {
+        width: 100% !important;
+        height: 400px;
+      }
+
+      .refresh-btn {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .refresh-btn:disabled {
+        background-color: #ccc;
+      }
+
+      /* Tema Claro */
+      .light-theme {
+        background-color: #f7f7f7;
+        color: #333;
+      }
+
+      .light-theme .status-card {
+        background-color: white;
+        color: #333;
+      }
+
+      .light-theme h1{
+        color: #333;
+      }
+
+      .light-theme button{
+        color: #fff;
+        background-color: #444;
+      }
+
+      .dark-theme {
+        background-color: #333;
+        color: #f7f7f7;
+      }
+
+      .dark-theme .status-card {
+        background-color: #444;
+        color: #f7f7f7;
+      }
+
+      .dark-theme h1{
+        color: #fff;
+      }
+
+      .dark-theme button{
+        color: #fff;
+        background-color: #444;
+      }
+
+      .dark-theme .status span {
+        color: #bbb;
+      }
+
+      .dark-theme .status.unavailable span {
+        color: #f44336;
+      }
+
+      .theme-toggle-btn {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        background-color: #333;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body class="light-theme">
+    <div class="container">
+      <h1 class="light-theme-text">Status das APIs</h1>
+
+      <div class="status-card">
+        <h3>API Status</h3>
+        <div id="statusList"></div>
+      </div>
+
+      <div class="status-card">
+        <h3>Gráfico de Status</h3>
+        <canvas id="statusChart"></canvas>
+      </div>
+
+      <button class="refresh-btn light-theme" id="refreshButton">Atualizar Dados</button>
+    </div>
+
+    <button class="theme-toggle-btn light-theme" id="themeToggleButton">Alternar Tema</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      const API_URL = 'http://localhost:8080/status';
+
+      let chartInstance;
+
+      const fetchData = async () => {
+        try {
+          const response = await fetch(API_URL);
+          const data = await response.json();
+          renderStatus(data);
+          renderChart(data);
+        } catch (error) {
+          console.error('Erro ao buscar os dados:', error);
+          renderStatus([]);
+          renderChart([]);
+        }
+      };
+
+      const renderStatus = (data) => {
+        const statusList = document.getElementById('statusList');
+        statusList.innerHTML = '';
+
+        data.forEach((service) => {
+          const statusCard = document.createElement('div');
+          statusCard.classList.add('status');
+
+          const statusText = service.status === 200 ? 'Disponível' : 'Indisponível';
+          const statusClass = service.status === 200 ? '' : 'unavailable';
+
+          statusCard.innerHTML = `
+            <h4>${service.url}</h4>
+            <p>Última verificação: ${new Date(service.last_checked).toLocaleString()}</p>
+            <div class="status ${statusClass}">
+              <span>${statusText}</span>
+            </div>
+          `;
+
+          statusList.appendChild(statusCard);
+        });
+      };
+
+      const renderChart = (data) => {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const statusCounts = data.reduce((acc, service) => {
+          acc[service.status] = (acc[service.status] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statusLabels = Object.keys(statusCounts);
+        const statusData = statusLabels.map(status => statusCounts[status]);
+
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: statusLabels,
+            datasets: [{
+              label: 'Contagem de Status',
+              data: statusData,
+              backgroundColor: statusLabels.map(status => status === '200' ? 'green' : 'red'),
+              borderColor: statusLabels.map(status => status === '200' ? 'darkgreen' : 'darkred'),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      };
+
+      document.getElementById('refreshButton').addEventListener('click', fetchData);
+
+      document.getElementById('themeToggleButton').addEventListener('click', () => {
+        const body = document.body;
+        body.classList.toggle('light-theme');
+        body.classList.toggle('dark-theme');
+      });
+
+      fetchData();
+
+      setInterval(fetchData, 10000);
+    </script>
+  </body>
+</html>
