@@ -2,7 +2,6 @@
   "name": "tinyapistatuschecker",
   "version": "1.0.0",
   "main": "index.ts",
-  "type": "module",
   "scripts": {
     "build": "npx tsc && copy .env build/.env && copy urls.json build/urls.json",
     "start": "tsx src/index.ts -f urls.json",
